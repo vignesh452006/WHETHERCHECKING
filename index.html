@@ -1,0 +1,800 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SkyCast — World Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Outfit',sans-serif;background:#02020a;color:#fff;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:0;height:0;}
+
+/* ── Animations ── */
+@keyframes fup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatW{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-14px) rotate(2deg)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.7}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 50px rgba(255,255,255,.15)}}
+@keyframes numPop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes rainD{0%{transform:translateY(-10px) rotate(15deg);opacity:0}30%{opacity:.8}100%{transform:translateY(105vh) rotate(15deg);opacity:0}}
+@keyframes snowF{0%{transform:translateY(-20px) rotate(0deg);opacity:0}20%{opacity:.9}80%{opacity:.6}100%{transform:translateY(105vh) rotate(720deg) translateX(30px);opacity:0}}
+@keyframes blob1{0%,100%{border-radius:60% 40% 70% 30%/50% 60% 40% 50%;transform:translate(0,0) scale(1)}25%{border-radius:40% 60% 30% 70%/60% 40% 50% 50%;transform:translate(3%,2%) scale(1.05)}50%{border-radius:70% 30% 50% 50%/40% 70% 30% 60%;transform:translate(-2%,4%) scale(.95)}75%{border-radius:30% 70% 60% 40%/50% 30% 70% 40%;transform:translate(2%,-2%) scale(1.02)}}
+@keyframes blob2{0%,100%{border-radius:40% 60% 50% 50%/60% 40% 60% 40%;transform:translate(0,0) scale(1)}33%{border-radius:70% 30% 40% 60%/30% 70% 50% 50%;transform:translate(-3%,-2%) scale(1.08)}66%{border-radius:50% 50% 70% 30%/40% 60% 30% 70%;transform:translate(4%,3%) scale(.92)}}
+@keyframes blob3{0%,100%{border-radius:50% 50% 40% 60%/40% 60% 50% 50%;transform:translate(0,0) scale(1)}50%{border-radius:30% 70% 60% 40%/60% 30% 70% 40%;transform:translate(-2%,3%) scale(1.1)}}
+@keyframes gridMove{0%{transform:translateY(0)}100%{transform:translateY(60px)}}
+@keyframes scanLine{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+@keyframes star{0%,100%{opacity:.1;transform:scale(.8)}50%{opacity:.9;transform:scale(1.4)}}
+@keyframes meteor{0%{transform:translateX(0) translateY(0);opacity:1}100%{transform:translateX(-200px) translateY(200px);opacity:0}}
+@keyframes ringPulse{0%{transform:translate(-50%,-50%) scale(.8);opacity:.6}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+@keyframes floatUp{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.6}90%{opacity:.3}100%{transform:translateY(-10vh) scale(1.5);opacity:0}}
+@keyframes waveX{0%,100%{transform:translateX(-5%) scaleY(1)}50%{transform:translateX(5%) scaleY(1.1)}}
+@keyframes shimSweep{0%{transform:translateX(-150%) skewX(-20deg)}100%{transform:translateX(250%) skewX(-20deg)}}
+
+/* ── Utility classes ── */
+.fu{animation:fup .5s ease both}
+.su{animation:slideUp .6s ease both}
+.float-w{animation:floatW 4.5s ease-in-out infinite}
+.glow-c{animation:glow 3s ease infinite}
+.npop{animation:numPop .5s cubic-bezier(.34,1.56,.64,1) both}
+input::placeholder{color:rgba(255,255,255,.3)}
+input:focus{outline:none}
+button{cursor:pointer;border:none;font-family:'Outfit',sans-serif;}
+button:active{transform:scale(.93);opacity:.78}
+.sx{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+.sx::-webkit-scrollbar{display:none}
+.glass{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);}
+.tap{transition:transform .15s}
+.lift{transition:transform .22s,box-shadow .22s}
+.lift:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.hidden{display:none!important}
+
+/* ── Layout ── */
+#app{max-width:430px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:10;}
+
+/* ── Background layers ── */
+#bg-base{position:fixed;inset:0;z-index:0;background:#02020a;transition:background 2s ease;}
+#bg-mesh{position:fixed;inset:0;z-index:1;transition:background 2s ease;animation:blob3 12s ease-in-out infinite;}
+#bg-blobs{position:fixed;inset:0;z-index:2;overflow:hidden;pointer-events:none;}
+#blob-a{position:absolute;top:-10%;left:-15%;width:65vw;height:65vw;filter:blur(45px);opacity:.75;animation:blob1 16s ease-in-out infinite;transition:background 2s ease;}
+#blob-b{position:absolute;bottom:-15%;right:-10%;width:60vw;height:60vw;filter:blur(50px);opacity:.7;animation:blob2 20s ease-in-out infinite;transition:background 2s ease;}
+#blob-c{position:absolute;top:35%;left:20%;width:45vw;height:45vw;background:radial-gradient(ellipse,rgba(255,255,255,.07) 0%,rgba(180,180,255,.04) 50%,transparent 70%);filter:blur(35px);animation:blob3 12s ease-in-out infinite;}
+#blob-d{position:absolute;top:10%;right:5%;width:35vw;height:50vw;filter:blur(55px);opacity:.5;animation:blob2 24s ease-in-out infinite reverse;transition:background 2s ease;}
+#bg-grid{position:fixed;inset:-60px;z-index:3;pointer-events:none;opacity:.18;background-size:60px 60px;animation:gridMove 8s linear infinite;}
+#scan{position:fixed;left:0;right:0;height:2px;z-index:4;pointer-events:none;animation:scanLine 6s linear infinite;opacity:.5;}
+#bg-stars{position:fixed;inset:0;z-index:5;pointer-events:none;}
+#bg-bubbles{position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden;}
+#bg-rings{position:fixed;top:40%;left:50%;z-index:7;pointer-events:none;}
+.ring{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid rgba(255,255,255,.3);animation:ringPulse 4s ease-out infinite;}
+#bg-wave{position:fixed;bottom:0;left:0;right:0;z-index:8;pointer-events:none;overflow:hidden;height:25%;}
+#wave-inner{position:absolute;bottom:-50%;left:-5%;right:-5%;height:200%;border-radius:50% 50% 0 0 / 30% 30% 0 0;animation:waveX 6s ease-in-out infinite;transition:background 2s ease;}
+#bg-shim{position:fixed;inset:0;z-index:9;pointer-events:none;overflow:hidden;}
+#shim-bar{position:absolute;top:0;bottom:0;width:30%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.025),transparent);animation:shimSweep 9s ease-in-out infinite;}
+#bg-fx{position:fixed;inset:0;z-index:10;pointer-events:none;overflow:hidden;}
+#bg-vignette{position:fixed;inset:0;z-index:11;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(2,2,10,.65) 100%);}
+
+/* ── Header ── */
+#header{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0;}
+#hdate{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;}
+#htime{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1.05;margin-top:2px;}
+#htz{font-size:10px;color:rgba(255,255,255,.35);margin-top:3px;font-weight:500;}
+#unit-btn{padding:8px 16px;border-radius:24px;background:rgba(255,255,255,.13);color:#fff;font-size:14px;font-weight:700;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);}
+
+/* ── Search ── */
+#search-wrap{padding:14px 20px 0;flex-shrink:0;position:relative;z-index:20;}
+#search-box{background:rgba(255,255,255,.1);border-radius:20px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;gap:10px;padding:13px 18px;}
+#search-box input{flex:1;background:none;border:none;color:#fff;font-size:14px;font-family:'Outfit',sans-serif;font-weight:500;}
+#search-clear{background:none;color:rgba(255,255,255,.45);font-size:16px;padding:0;}
+#search-dd{position:absolute;top:calc(100% + 6px);left:20px;right:20px;background:rgba(8,8,22,.97);border-radius:18px;border:1px solid rgba(255,255,255,.12);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.75);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:100;}
+.dd-item{padding:13px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s;}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:hover{background:rgba(255,255,255,.07);}
+.dd-name{font-weight:600;font-size:14px;}
+.dd-flag{font-size:11px;color:rgba(255,255,255,.38);margin-top:1px;}
+
+/* ── Content ── */
+#content{flex:1;overflow-y:auto;padding-bottom:90px;}
+
+/* ── Loading ── */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px;gap:20px;}
+#loading-emoji{font-size:80px;}
+#loading-text{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.75);}
+#loading-dots{display:flex;gap:10px;}
+.dot{width:9px;height:9px;border-radius:50%;}
+
+/* ── Home ── */
+#home{padding:18px 20px 0;}
+#home-title{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;margin-bottom:3px;}
+#home-sub{font-size:12px;color:rgba(255,255,255,.38);margin-bottom:20px;font-weight:500;}
+#city-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.city-card{border-radius:22px;padding:20px 16px;cursor:pointer;text-align:left;color:#fff;animation:fup .45s ease both;transition:transform .22s,box-shadow .22s;}
+.city-card:hover{transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.6);}
+.city-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.city-em{font-size:36px;}
+.city-flag{font-size:18px;}
+.city-name{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:14px;}
+.city-meta{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px;}
+.city-btn{margin-top:10px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-block;}
+
+/* ── Detail ── */
+#detail{display:none;}
+.hero-card{border-radius:28px;padding:28px 24px;position:relative;overflow:hidden;}
+.hero-glow-a{position:absolute;top:-70px;right:-70px;width:220px;height:220px;border-radius:50%;filter:blur(35px);}
+.hero-glow-b{position:absolute;bottom:-50px;left:-50px;width:160px;height:160px;border-radius:50%;filter:blur(28px);}
+.hero-inner{position:relative;}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.city-title{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:900;letter-spacing:-1px;}
+.city-name-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.city-flag-big{font-size:20px;}
+.city-desc{font-size:12px;color:rgba(255,255,255,.45);font-weight:500;}
+.city-local-time{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:600;font-family:'Space Grotesk',sans-serif;}
+.hero-emoji{font-size:64px;}
+.temp-big{font-family:'Space Grotesk',sans-serif;font-size:84px;font-weight:900;line-height:.9;letter-spacing:-5px;background:linear-gradient(135deg,#fff 55%,rgba(255,255,255,.45));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.temp-sub{font-size:14px;color:rgba(255,255,255,.6);margin-top:10px;font-weight:500;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px;}
+.stat-box{background:rgba(255,255,255,.1);border-radius:16px;padding:12px 6px;text-align:center;}
+.stat-em{font-size:20px;margin-bottom:4px;}
+.stat-val{font-weight:700;font-size:12px;}
+.stat-lbl{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;}
+
+/* ── Smart tip ── */
+.tip-card{border-radius:20px;padding:16px 18px;background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(59,130,246,.14));border:1px solid rgba(139,92,246,.3);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+.tip-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.tip-star{font-size:16px;animation:pulse 2s ease infinite;display:inline-block;}
+.tip-lbl{font-size:10px;font-weight:700;color:#c084fc;letter-spacing:2px;text-transform:uppercase;}
+.tip-text{font-size:13px;color:rgba(255,255,255,.88);line-height:1.7;font-weight:500;}
+
+/* ── Extra row ── */
+.extra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.extra-box{border-radius:18px;padding:14px 10px;text-align:center;}
+.extra-em{font-size:26px;margin-bottom:7px;}
+.extra-val{font-weight:700;font-size:13px;}
+.extra-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;}
+
+/* ── UV + Wind ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.uv-num{font-family:'Space Grotesk',sans-serif;font-size:38px;font-weight:900;}
+.uv-lbl{font-size:12px;font-weight:700;margin-top:4px;}
+.uv-bar-wrap{height:5px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:14px;overflow:hidden;}
+.uv-bar{height:100%;background:linear-gradient(90deg,#4ade80,#facc15,#f87171,#c084fc);border-radius:3px;}
+.wind-speed{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;}
+.wind-dir-lbl{font-size:11px;color:rgba(255,255,255,.42);margin-top:2px;}
+
+/* ── Hourly ── */
+.hourly-card{flexShrink:0;width:66px;text-align:center;padding:14px 8px;border-radius:20px;}
+.hr-time{font-size:10px;margin-bottom:7px;}
+.hr-em{font-size:26px;margin-bottom:7px;}
+.hr-temp{font-weight:700;font-size:13px;}
+.hr-now{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38);}
+.hr-reg{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07);}
+
+/* ── 7-Day ── */
+.day-row{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);}
+.day-row:last-child{border-bottom:none;}
+.day-today{background:rgba(255,255,255,.05);}
+.day-name{width:52px;font-family:'Space Grotesk',sans-serif;font-size:13px;}
+.day-em{font-size:24px;width:32px;}
+.day-rain{width:36px;font-size:10px;color:#93c5fd;font-weight:500;}
+.day-bar-wrap{flex:1;margin:0 12px;position:relative;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;}
+.day-bar{position:absolute;top:0;height:100%;border-radius:3px;}
+.day-lo{font-size:12px;color:rgba(255,255,255,.48);width:30px;text-align:right;}
+.day-hi{font-size:13px;font-weight:700;width:30px;text-align:right;}
+
+/* ── Wear tips ── */
+.wear-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.wear-pill{padding:7px 14px;background:rgba(255,255,255,.09);border-radius:24px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.1);}
+
+/* ── Other cities scroll ── */
+.other-card{flex-shrink:0;min-width:90px;padding:16px 12px;border-radius:20px;cursor:pointer;text-align:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .22s;}
+.other-card:hover{transform:translateY(-4px);}
+.other-em{font-size:30px;margin-bottom:5px;}
+.other-name{font-weight:700;font-size:12px;}
+.other-flag{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px;}
+.other-temp{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px;}
+.other-time{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
+
+/* ── Section header ── */
+.sec-hdr{font-size:10px;font-weight:700;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.pad{padding:14px 20px 0;}
+
+/* ── Bottom nav ── */
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(6,6,15,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,.08);display:flex;z-index:50;box-shadow:0 -4px 30px rgba(0,0,0,.5);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0 16px;background:none;color:rgba(255,255,255,.33);transition:color .2s;position:relative;}
+.nav-btn.active{color:#fff;}
+.nav-indicator{position:absolute;top:0;left:50%;transform:translateX(-50%);width:36px;height:3px;border-radius:2px;}
+.nav-icon{font-size:24px;}
+.nav-lbl{font-size:10px;font-weight:600;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND LAYERS -->
+<div id="bg-base"></div>
+<div id="bg-mesh"></div>
+<div id="bg-blobs">
+  <div id="blob-a"></div>
+  <div id="blob-b"></div>
+  <div id="blob-c"></div>
+  <div id="blob-d"></div>
+</div>
+<div id="bg-grid"></div>
+<div id="scan"></div>
+<div id="bg-stars"></div>
+<div id="bg-bubbles"></div>
+<div id="bg-rings">
+  <div class="ring" style="width:120px;height:120px;animation-delay:0s;"></div>
+  <div class="ring" style="width:200px;height:200px;animation-delay:1.2s;"></div>
+  <div class="ring" style="width:300px;height:300px;animation-delay:2.4s;"></div>
+</div>
+<div id="bg-wave"><div id="wave-inner"></div></div>
+<div id="bg-shim"><div id="shim-bar"></div></div>
+<div id="bg-fx"></div>
+<div id="bg-vignette"></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div class="fu">
+      <div id="hdate"></div>
+      <div id="htime"></div>
+      <div id="htz"></div>
+    </div>
+    <button id="unit-btn" onclick="toggleUnit()">°F</button>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="search-wrap">
+    <div id="search-box">
+      <span style="font-size:16px;opacity:.55;">⌕</span>
+      <input id="search-input" placeholder="Search any city…" oninput="onSearch(this.value)" onkeydown="if(event.key==='Enter')doSearchEnter()">
+      <button id="search-clear" class="hidden" onclick="clearSearch()">✕</button>
+    </div>
+    <div id="search-dd" class="hidden"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content" onclick="hideDD()">
+
+    <!-- LOADING -->
+    <div id="loading" class="hidden">
+      <div id="loading-emoji" class="float-w">🌤️</div>
+      <div id="loading-text">Loading…</div>
+      <div id="loading-dots">
+        <div class="dot" style="background:#6366f1;animation:pulse 1.4s ease 0s infinite"></div>
+        <div class="dot" style="background:#0ea5e9;animation:pulse 1.4s ease .2s infinite"></div>
+        <div class="dot" style="background:#10b981;animation:pulse 1.4s ease .4s infinite"></div>
+        <div class="dot" style="background:#f59e0b;animation:pulse 1.4s ease .6s infinite"></div>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div id="home">
+      <div id="home-title">🌍 World Weather</div>
+      <div id="home-sub">March 2026 · Tap any city</div>
+      <div id="city-grid"></div>
+    </div>
+
+    <!-- DETAIL -->
+    <div id="detail">
+      <div class="pad">
+        <div class="hero-card glass glow-c su">
+          <div class="hero-glow-a" id="hglow-a"></div>
+          <div class="hero-glow-b" id="hglow-b"></div>
+          <div class="hero-inner">
+            <div class="hero-top">
+              <div>
+                <div class="city-name-row">
+                  <span class="city-flag-big" id="d-flag"></span>
+                  <span class="city-title" id="d-city"></span>
+                </div>
+                <div class="city-desc" id="d-desc"></div>
+                <div class="city-local-time" id="d-localtime"></div>
+              </div>
+              <div class="hero-emoji float-w" id="d-emoji"></div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div class="temp-big npop" id="d-temp"></div>
+              <div class="temp-sub" id="d-sub"></div>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-box"><div class="stat-em">💧</div><div class="stat-val" id="d-hum"></div><div class="stat-lbl">Humidity</div></div>
+              <div class="stat-box"><div class="stat-em">💨</div><div class="stat-val" id="d-wind"></div><div class="stat-lbl" id="d-wdir"></div></div>
+              <div class="stat-box"><div class="stat-em">👁️</div><div class="stat-val" id="d-vis"></div><div class="stat-lbl">Visibility</div></div>
+              <div class="stat-box"><div class="stat-em">🌡️</div><div class="stat-val" id="d-pres"></div><div class="stat-lbl">Pressure</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="tip-card fu">
+          <div class="tip-hdr"><span class="tip-star">✦</span><span class="tip-lbl">Smart Tip</span></div>
+          <div class="tip-text" id="d-tip"></div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="extra-grid">
+          <div class="extra-box glass fu"><div class="extra-em">🔆</div><div class="extra-val" id="d-uvi"></div><div class="extra-sub" id="d-uvlbl"></div></div>
+          <div class="extra-box glass fu" style="animation-delay:.08s"><div class="extra-em">🌅</div><div class="extra-val" id="d-rise"></div><div class="extra-sub">Sunrise</div></div>
+          <div class="extra-box glass fu" style="animation-delay:.15s"><div class="extra-em">🌇</div><div class="extra-val" id="d-set"></div><div class="extra-sub">Sunset</div></div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="two-col">
+          <div class="glass fu" style="border-radius:22px;padding:20px 16px;animation-delay:.22s">
+            <div class="sec-hdr" style="margin-bottom:12px;">UV Index</div>
+            <div style="font-size:46px;line-height:1;margin-bottom:8px;">🔆</div>
+            <div class="uv-num" id="d-uv"></div>
+            <div class="uv-lbl" id="d-uvt"></div>
+            <div class="uv-bar-wrap"><div class="uv-bar" id="d-uvbar"></div></div>
+          </div>
+          <div class="glass fu" style="border-radius:22px;padding:20px 16px;animation-delay:.28s;display:flex;flex-direction:column;align-items:center;">
+            <div class="sec-hdr" style="margin-bottom:12px;align-self:flex-start;">Wind</div>
+            <svg id="compass-svg" viewBox="0 0 84 84" width="84" height="84">
+              <circle cx="42" cy="42" r="40" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="2"/>
+              <text x="42" y="8" text-anchor="middle" dominant-baseline="central" fill="rgba(255,255,255,.38)" font-size="8" font-weight="700">N</text>
+              <text x="76" y="42" text-anchor="middle" dominant-baseline="central" fill="rgba(255,255,255,.38)" font-size="8" font-weight="700">E</text>
+              <text x="42" y="76" text-anchor="middle" dominant-baseline="central" fill="rgba(255,255,255,.38)" font-size="8" font-weight="700">S</text>
+              <text x="8" y="42" text-anchor="middle" dominant-baseline="central" fill="rgba(255,255,255,.38)" font-size="8" font-weight="700">W</text>
+              <g id="compass-arrow">
+                <polygon points="42,9 45,42 42,36 39,42" fill="#60a5fa"/>
+                <polygon points="42,75 45,42 42,48 39,42" fill="rgba(255,255,255,.15)"/>
+              </g>
+              <circle cx="42" cy="42" r="5" fill="white" opacity=".9"/>
+            </svg>
+            <div style="text-align:center;margin-top:8px;">
+              <div class="wind-speed" id="d-wsp"></div>
+              <div class="wind-dir-lbl" id="d-wdlbl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="sec-hdr">Hourly Forecast</div>
+        <div class="sx" style="display:flex;gap:10px;padding-bottom:4px;" id="d-hourly"></div>
+      </div>
+
+      <div class="pad">
+        <div class="sec-hdr">7-Day Forecast</div>
+        <div class="glass" style="border-radius:22px;overflow:hidden;" id="d-week"></div>
+      </div>
+
+      <div class="pad">
+        <div class="glass" style="border-radius:22px;padding:18px;">
+          <div class="sec-hdr">What to Wear</div>
+          <div class="wear-grid" id="d-wear"></div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="sec-hdr">Other Cities</div>
+        <div class="sx" style="display:flex;gap:10px;padding-bottom:4px;" id="d-others"></div>
+      </div>
+      <div style="height:24px;"></div>
+    </div>
+
+  </div><!-- content -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="nav-btn" id="nav-home" onclick="gotoHome()">
+      <div class="nav-icon">⊞</div>
+      <div class="nav-lbl">Cities</div>
+    </button>
+    <button class="nav-btn" id="nav-detail" onclick="gotoDetail()">
+      <div class="nav-icon">🌤️</div>
+      <div class="nav-lbl">Weather</div>
+    </button>
+  </nav>
+
+</div><!-- app -->
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const WDB = {
+  Chennai:   {t:34,f:37,h:72,w:14,wd:"SE",p:1008,uv:9, v:8, code:"sunny",   rise:"6:12 AM",set:"6:24 PM",desc:"Hot & humid coastal city",tz:"Asia/Kolkata"},
+  Mumbai:    {t:33,f:35,h:68,w:18,wd:"W", p:1010,uv:8, v:10,code:"sunny",   rise:"6:32 AM",set:"6:45 PM",desc:"Warm tropical coast",     tz:"Asia/Kolkata"},
+  Delhi:     {t:28,f:29,h:38,w:12,wd:"NW",p:1012,uv:7, v:12,code:"sunny",   rise:"6:28 AM",set:"6:40 PM",desc:"Pleasant spring day",      tz:"Asia/Kolkata"},
+  Bangalore: {t:27,f:27,h:48,w:10,wd:"E", p:1013,uv:8, v:14,code:"cloudy",  rise:"6:18 AM",set:"6:28 PM",desc:"Mild garden city",         tz:"Asia/Kolkata"},
+  Kolkata:   {t:32,f:35,h:62,w:14,wd:"S", p:1009,uv:8, v:9, code:"cloudy",  rise:"5:52 AM",set:"5:58 PM",desc:"Warm & humid spring",      tz:"Asia/Kolkata"},
+  "New York":{t:8, f:5, h:58,w:22,wd:"NW",p:1020,uv:3, v:16,code:"cloudy",  rise:"7:04 AM",set:"7:22 PM",desc:"Cool early spring",        tz:"America/New_York"},
+  London:    {t:10,f:8, h:72,w:18,wd:"SW",p:1016,uv:2, v:12,code:"overcast",rise:"6:08 AM",set:"6:24 PM",desc:"Cloudy & mild",            tz:"Europe/London"},
+  Tokyo:     {t:12,f:10,h:52,w:14,wd:"N", p:1018,uv:4, v:18,code:"sunny",   rise:"5:47 AM",set:"5:56 PM",desc:"Clear spring day",         tz:"Asia/Tokyo"},
+  Dubai:     {t:29,f:30,h:52,w:16,wd:"NW",p:1014,uv:8, v:20,code:"sunny",   rise:"6:16 AM",set:"6:24 PM",desc:"Warm & sunny desert",      tz:"Asia/Dubai"},
+  Sydney:    {t:22,f:22,h:68,w:16,wd:"NE",p:1015,uv:5, v:15,code:"cloudy",  rise:"7:02 AM",set:"7:14 PM",desc:"Mild autumn start",        tz:"Australia/Sydney"},
+  Paris:     {t:11,f:9, h:68,w:16,wd:"W", p:1018,uv:3, v:14,code:"overcast",rise:"7:18 AM",set:"7:35 PM",desc:"Overcast & cool",          tz:"Europe/Paris"},
+  Singapore: {t:30,f:34,h:80,w:12,wd:"S", p:1010,uv:7, v:10,code:"rainy",   rise:"7:08 AM",set:"7:16 PM",desc:"Rainy tropical island",    tz:"Asia/Singapore"},
+  Toronto:   {t:2, f:-2,h:65,w:20,wd:"NW",p:1022,uv:2, v:16,code:"cloudy",  rise:"7:26 AM",set:"7:44 PM",desc:"Cold late winter",         tz:"America/Toronto"},
+  Beijing:   {t:12,f:9, h:35,w:18,wd:"N", p:1016,uv:5, v:14,code:"sunny",   rise:"6:18 AM",set:"6:32 PM",desc:"Dry & breezy spring",      tz:"Asia/Shanghai"},
+  Moscow:    {t:1, f:-3,h:72,w:14,wd:"W", p:1020,uv:2, v:12,code:"snow",    rise:"7:14 AM",set:"7:32 PM",desc:"Cold with light snow",     tz:"Europe/Moscow"},
+  Cairo:     {t:24,f:24,h:35,w:18,wd:"N", p:1016,uv:7, v:16,code:"sunny",   rise:"6:04 AM",set:"6:14 PM",desc:"Warm & sunny",             tz:"Africa/Cairo"},
+};
+
+const WEEK = {
+  Chennai:   [{d:"Today",hi:36,lo:26,e:"☀️",r:5},{d:"Mon",hi:35,lo:25,e:"☀️",r:5},{d:"Tue",hi:34,lo:25,e:"⛅",r:20},{d:"Wed",hi:33,lo:24,e:"⛅",r:30},{d:"Thu",hi:35,lo:26,e:"☀️",r:10},{d:"Fri",hi:36,lo:26,e:"☀️",r:5},{d:"Sat",hi:34,lo:25,e:"⛅",r:25}],
+  Mumbai:    [{d:"Today",hi:34,lo:24,e:"☀️",r:5},{d:"Mon",hi:33,lo:24,e:"☀️",r:5},{d:"Tue",hi:33,lo:23,e:"⛅",r:15},{d:"Wed",hi:32,lo:23,e:"☀️",r:5},{d:"Thu",hi:34,lo:24,e:"☀️",r:5},{d:"Fri",hi:33,lo:24,e:"⛅",r:10},{d:"Sat",hi:32,lo:23,e:"⛅",r:20}],
+  Delhi:     [{d:"Today",hi:30,lo:15,e:"☀️",r:0},{d:"Mon",hi:32,lo:16,e:"☀️",r:0},{d:"Tue",hi:33,lo:17,e:"☀️",r:0},{d:"Wed",hi:31,lo:16,e:"⛅",r:10},{d:"Thu",hi:30,lo:15,e:"☀️",r:0},{d:"Fri",hi:32,lo:16,e:"☀️",r:0},{d:"Sat",hi:33,lo:17,e:"☀️",r:0}],
+  Bangalore: [{d:"Today",hi:30,lo:18,e:"⛅",r:15},{d:"Mon",hi:29,lo:18,e:"⛅",r:20},{d:"Tue",hi:28,lo:17,e:"⛅",r:25},{d:"Wed",hi:29,lo:18,e:"☀️",r:10},{d:"Thu",hi:30,lo:19,e:"☀️",r:5},{d:"Fri",hi:29,lo:18,e:"⛅",r:20},{d:"Sat",hi:28,lo:17,e:"🌧️",r:60}],
+  Kolkata:   [{d:"Today",hi:34,lo:22,e:"⛅",r:15},{d:"Mon",hi:35,lo:23,e:"☀️",r:5},{d:"Tue",hi:34,lo:22,e:"⛅",r:20},{d:"Wed",hi:33,lo:22,e:"☀️",r:5},{d:"Thu",hi:35,lo:23,e:"☀️",r:5},{d:"Fri",hi:34,lo:22,e:"⛅",r:15},{d:"Sat",hi:33,lo:22,e:"🌧️",r:55}],
+  "New York":[{d:"Today",hi:11,lo:3,e:"⛅",r:20},{d:"Mon",hi:9,lo:1,e:"☁️",r:40},{d:"Tue",hi:7,lo:0,e:"🌧️",r:70},{d:"Wed",hi:11,lo:2,e:"⛅",r:25},{d:"Thu",hi:13,lo:4,e:"☀️",r:10},{d:"Fri",hi:10,lo:2,e:"⛅",r:30},{d:"Sat",hi:8,lo:1,e:"☁️",r:45}],
+  London:    [{d:"Today",hi:13,lo:5,e:"☁️",r:50},{d:"Mon",hi:11,lo:4,e:"🌧️",r:70},{d:"Tue",hi:10,lo:4,e:"☁️",r:55},{d:"Wed",hi:12,lo:5,e:"⛅",r:35},{d:"Thu",hi:14,lo:6,e:"⛅",r:30},{d:"Fri",hi:12,lo:5,e:"☁️",r:50},{d:"Sat",hi:11,lo:4,e:"🌧️",r:65}],
+  Tokyo:     [{d:"Today",hi:15,lo:6,e:"☀️",r:5},{d:"Mon",hi:14,lo:5,e:"☀️",r:5},{d:"Tue",hi:13,lo:5,e:"⛅",r:20},{d:"Wed",hi:15,lo:6,e:"☀️",r:5},{d:"Thu",hi:16,lo:7,e:"☀️",r:5},{d:"Fri",hi:14,lo:6,e:"⛅",r:25},{d:"Sat",hi:13,lo:5,e:"🌧️",r:55}],
+  Dubai:     [{d:"Today",hi:32,lo:19,e:"☀️",r:0},{d:"Mon",hi:33,lo:20,e:"☀️",r:0},{d:"Tue",hi:33,lo:20,e:"☀️",r:0},{d:"Wed",hi:34,lo:21,e:"☀️",r:0},{d:"Thu",hi:33,lo:20,e:"☀️",r:0},{d:"Fri",hi:32,lo:19,e:"☀️",r:0},{d:"Sat",hi:33,lo:20,e:"☀️",r:0}],
+  Sydney:    [{d:"Today",hi:25,lo:16,e:"⛅",r:20},{d:"Mon",hi:24,lo:16,e:"⛅",r:25},{d:"Tue",hi:22,lo:15,e:"🌧️",r:65},{d:"Wed",hi:21,lo:14,e:"🌧️",r:70},{d:"Thu",hi:23,lo:15,e:"⛅",r:30},{d:"Fri",hi:24,lo:16,e:"⛅",r:20},{d:"Sat",hi:25,lo:16,e:"☀️",r:10}],
+  Paris:     [{d:"Today",hi:14,lo:5,e:"☁️",r:50},{d:"Mon",hi:12,lo:4,e:"🌧️",r:75},{d:"Tue",hi:11,lo:4,e:"☁️",r:55},{d:"Wed",hi:13,lo:5,e:"⛅",r:35},{d:"Thu",hi:14,lo:5,e:"⛅",r:30},{d:"Fri",hi:13,lo:5,e:"☁️",r:50},{d:"Sat",hi:12,lo:4,e:"🌧️",r:70}],
+  Singapore: [{d:"Today",hi:32,lo:25,e:"🌧️",r:80},{d:"Mon",hi:31,lo:25,e:"🌧️",r:75},{d:"Tue",hi:31,lo:24,e:"⛅",r:45},{d:"Wed",hi:32,lo:25,e:"⛅",r:40},{d:"Thu",hi:31,lo:24,e:"🌧️",r:70},{d:"Fri",hi:30,lo:24,e:"🌧️",r:80},{d:"Sat",hi:31,lo:25,e:"⛅",r:50}],
+  Toronto:   [{d:"Today",hi:5,lo:-3,e:"⛅",r:25},{d:"Mon",hi:3,lo:-4,e:"☁️",r:40},{d:"Tue",hi:1,lo:-5,e:"🌨️",r:60},{d:"Wed",hi:4,lo:-3,e:"⛅",r:30},{d:"Thu",hi:7,lo:-1,e:"⛅",r:20},{d:"Fri",hi:5,lo:-2,e:"☁️",r:35},{d:"Sat",hi:3,lo:-4,e:"🌨️",r:55}],
+  Beijing:   [{d:"Today",hi:15,lo:2,e:"☀️",r:0},{d:"Mon",hi:17,lo:3,e:"☀️",r:0},{d:"Tue",hi:16,lo:3,e:"⛅",r:10},{d:"Wed",hi:14,lo:2,e:"⛅",r:15},{d:"Thu",hi:16,lo:3,e:"☀️",r:0},{d:"Fri",hi:18,lo:4,e:"☀️",r:0},{d:"Sat",hi:17,lo:3,e:"⛅",r:5}],
+  Moscow:    [{d:"Today",hi:4,lo:-4,e:"🌨️",r:50},{d:"Mon",hi:2,lo:-5,e:"☁️",r:40},{d:"Tue",hi:1,lo:-6,e:"🌨️",r:55},{d:"Wed",hi:3,lo:-4,e:"⛅",r:25},{d:"Thu",hi:5,lo:-3,e:"⛅",r:20},{d:"Fri",hi:4,lo:-4,e:"☁️",r:35},{d:"Sat",hi:2,lo:-5,e:"🌨️",r:50}],
+  Cairo:     [{d:"Today",hi:27,lo:13,e:"☀️",r:0},{d:"Mon",hi:28,lo:14,e:"☀️",r:0},{d:"Tue",hi:28,lo:14,e:"☀️",r:0},{d:"Wed",hi:27,lo:13,e:"☀️",r:0},{d:"Thu",hi:29,lo:14,e:"☀️",r:0},{d:"Fri",hi:28,lo:14,e:"☀️",r:0},{d:"Sat",hi:27,lo:13,e:"☀️",r:0}],
+};
+
+const HOURLY = {
+  Chennai:   [{t:"Now",c:34,e:"☀️"},{t:"3pm",c:36,e:"☀️"},{t:"6pm",c:34,e:"🌤️"},{t:"9pm",c:31,e:"🌙"},{t:"12am",c:28,e:"🌙"},{t:"3am",c:27,e:"🌙"},{t:"6am",c:27,e:"🌅"},{t:"9am",c:31,e:"🌤️"}],
+  Mumbai:    [{t:"Now",c:33,e:"☀️"},{t:"3pm",c:34,e:"☀️"},{t:"6pm",c:32,e:"🌤️"},{t:"9pm",c:29,e:"🌙"},{t:"12am",c:27,e:"🌙"},{t:"3am",c:26,e:"🌙"},{t:"6am",c:26,e:"🌅"},{t:"9am",c:30,e:"🌤️"}],
+  Delhi:     [{t:"Now",c:28,e:"☀️"},{t:"3pm",c:30,e:"☀️"},{t:"6pm",c:26,e:"🌤️"},{t:"9pm",c:21,e:"🌙"},{t:"12am",c:18,e:"🌙"},{t:"3am",c:16,e:"🌙"},{t:"6am",c:16,e:"🌅"},{t:"9am",c:23,e:"🌤️"}],
+  Bangalore: [{t:"Now",c:27,e:"⛅"},{t:"3pm",c:29,e:"⛅"},{t:"6pm",c:26,e:"⛅"},{t:"9pm",c:22,e:"🌙"},{t:"12am",c:20,e:"🌙"},{t:"3am",c:19,e:"🌙"},{t:"6am",c:19,e:"🌅"},{t:"9am",c:23,e:"🌤️"}],
+  Kolkata:   [{t:"Now",c:32,e:"⛅"},{t:"3pm",c:34,e:"☀️"},{t:"6pm",c:31,e:"🌤️"},{t:"9pm",c:27,e:"🌙"},{t:"12am",c:25,e:"🌙"},{t:"3am",c:24,e:"🌙"},{t:"6am",c:24,e:"🌅"},{t:"9am",c:28,e:"🌤️"}],
+  "New York":[{t:"Now",c:8,e:"⛅"},{t:"3pm",c:11,e:"⛅"},{t:"6pm",c:9,e:"⛅"},{t:"9pm",c:6,e:"🌙"},{t:"12am",c:4,e:"🌙"},{t:"3am",c:3,e:"🌙"},{t:"6am",c:3,e:"🌅"},{t:"9am",c:7,e:"🌤️"}],
+  London:    [{t:"Now",c:10,e:"☁️"},{t:"3pm",c:13,e:"☁️"},{t:"6pm",c:11,e:"☁️"},{t:"9pm",c:8,e:"🌙"},{t:"12am",c:6,e:"🌙"},{t:"3am",c:5,e:"🌙"},{t:"6am",c:5,e:"🌅"},{t:"9am",c:8,e:"☁️"}],
+  Tokyo:     [{t:"Now",c:12,e:"☀️"},{t:"3pm",c:15,e:"☀️"},{t:"6pm",c:13,e:"🌤️"},{t:"9pm",c:9,e:"🌙"},{t:"12am",c:7,e:"🌙"},{t:"3am",c:6,e:"🌙"},{t:"6am",c:6,e:"🌅"},{t:"9am",c:10,e:"🌤️"}],
+  Dubai:     [{t:"Now",c:29,e:"☀️"},{t:"3pm",c:32,e:"☀️"},{t:"6pm",c:30,e:"🌤️"},{t:"9pm",c:26,e:"🌙"},{t:"12am",c:23,e:"🌙"},{t:"3am",c:21,e:"🌙"},{t:"6am",c:21,e:"🌅"},{t:"9am",c:26,e:"☀️"}],
+  Sydney:    [{t:"Now",c:22,e:"⛅"},{t:"3pm",c:25,e:"⛅"},{t:"6pm",c:22,e:"⛅"},{t:"9pm",c:19,e:"🌙"},{t:"12am",c:17,e:"🌙"},{t:"3am",c:16,e:"🌙"},{t:"6am",c:17,e:"🌅"},{t:"9am",c:20,e:"🌤️"}],
+  Paris:     [{t:"Now",c:11,e:"☁️"},{t:"3pm",c:14,e:"☁️"},{t:"6pm",c:12,e:"☁️"},{t:"9pm",c:8,e:"🌙"},{t:"12am",c:6,e:"🌙"},{t:"3am",c:5,e:"🌙"},{t:"6am",c:5,e:"🌅"},{t:"9am",c:9,e:"☁️"}],
+  Singapore: [{t:"Now",c:30,e:"🌧️"},{t:"3pm",c:31,e:"🌧️"},{t:"6pm",c:29,e:"⛅"},{t:"9pm",c:27,e:"🌙"},{t:"12am",c:26,e:"🌙"},{t:"3am",c:25,e:"🌙"},{t:"6am",c:26,e:"🌅"},{t:"9am",c:29,e:"⛅"}],
+  Toronto:   [{t:"Now",c:2,e:"⛅"},{t:"3pm",c:5,e:"⛅"},{t:"6pm",c:3,e:"⛅"},{t:"9pm",c:0,e:"🌙"},{t:"12am",c:-2,e:"🌙"},{t:"3am",c:-3,e:"🌙"},{t:"6am",c:-3,e:"🌅"},{t:"9am",c:1,e:"🌤️"}],
+  Beijing:   [{t:"Now",c:12,e:"☀️"},{t:"3pm",c:15,e:"☀️"},{t:"6pm",c:12,e:"🌤️"},{t:"9pm",c:7,e:"🌙"},{t:"12am",c:4,e:"🌙"},{t:"3am",c:3,e:"🌙"},{t:"6am",c:3,e:"🌅"},{t:"9am",c:9,e:"🌤️"}],
+  Moscow:    [{t:"Now",c:1,e:"🌨️"},{t:"3pm",c:4,e:"☁️"},{t:"6pm",c:2,e:"☁️"},{t:"9pm",c:-1,e:"🌙"},{t:"12am",c:-3,e:"🌙"},{t:"3am",c:-4,e:"🌙"},{t:"6am",c:-4,e:"🌅"},{t:"9am",c:0,e:"☁️"}],
+  Cairo:     [{t:"Now",c:24,e:"☀️"},{t:"3pm",c:27,e:"☀️"},{t:"6pm",c:24,e:"🌤️"},{t:"9pm",c:19,e:"🌙"},{t:"12am",c:16,e:"🌙"},{t:"3am",c:14,e:"🌙"},{t:"6am",c:14,e:"🌅"},{t:"9am",c:20,e:"☀️"}],
+};
+
+const CODE = {
+  sunny:   {em:"☀️",g:["#f7971e","#ffd200"]},
+  cloudy:  {em:"⛅",g:["#4776E6","#8E54E9"]},
+  overcast:{em:"☁️",g:["#485563","#29323c"]},
+  rainy:   {em:"🌧️",g:["#1565C0","#42A5F5"]},
+  snow:    {em:"🌨️",g:["#546e7a","#90CAF9"]},
+  storm:   {em:"⛈️",g:["#0a2463","#1565C0"]},
+};
+
+const CITIES = [
+  {n:"Chennai",f:"🇮🇳",e:"🌴"},{n:"Mumbai",f:"🇮🇳",e:"🌊"},{n:"Delhi",f:"🇮🇳",e:"🏛️"},
+  {n:"Bangalore",f:"🇮🇳",e:"🌿"},{n:"Kolkata",f:"🇮🇳",e:"🎨"},{n:"New York",f:"🇺🇸",e:"🗽"},
+  {n:"London",f:"🇬🇧",e:"🎡"},{n:"Tokyo",f:"🇯🇵",e:"🗼"},{n:"Dubai",f:"🇦🇪",e:"🌆"},
+  {n:"Sydney",f:"🇦🇺",e:"🦘"},{n:"Paris",f:"🇫🇷",e:"🥐"},{n:"Singapore",f:"🇸🇬",e:"🦁"},
+  {n:"Toronto",f:"🇨🇦",e:"🍁"},{n:"Beijing",f:"🇨🇳",e:"🏯"},{n:"Moscow",f:"🇷🇺",e:"❄️"},
+  {n:"Cairo",f:"🇪🇬",e:"🏺"},
+];
+const PAL=["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7","#e11d48","#0891b2","#7c3aed","#b45309"];
+const WDIRS=["N","NE","E","SE","S","SW","W","NW"];
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let SEL = null, UNIT = "C", VIEW = "home";
+
+function tc(c){ return UNIT==="F" ? Math.round(c*9/5+32)+"°F" : c+"°C"; }
+function tn(c){ return UNIT==="F" ? Math.round(c*9/5+32) : c; }
+function uvLbl(v){ if(v<=2)return{t:"Low",c:"#4ade80"};if(v<=5)return{t:"Moderate",c:"#facc15"};if(v<=7)return{t:"High",c:"#fb923c"};if(v<=10)return{t:"Very High",c:"#f87171"};return{t:"Extreme",c:"#c084fc"}; }
+function wAngle(d){ const i=WDIRS.indexOf(d);return i>=0?i*45:0; }
+function cityTime(tz){ return new Date().toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit",timeZone:tz}); }
+function cityDate(tz){ return new Date().toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric",timeZone:tz}); }
+
+// ══════════════════════════════════════════
+// BACKGROUND
+// ══════════════════════════════════════════
+function updateBG(g0, g1, code) {
+  document.getElementById("bg-base").style.background = `linear-gradient(135deg,#02020a 0%,${g0}44 40%,${g1}28 70%,#02020a 100%)`;
+  document.getElementById("bg-mesh").style.background = `radial-gradient(ellipse 80% 60% at 20% 30%,${g0}35 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 80% 70%,${g1}30 0%,transparent 60%)`;
+  document.getElementById("blob-a").style.background = `radial-gradient(circle,${g0}55 0%,${g0}22 40%,transparent 70%)`;
+  document.getElementById("blob-b").style.background = `radial-gradient(circle,${g1}50 0%,${g1}20 45%,transparent 70%)`;
+  document.getElementById("blob-d").style.background = `radial-gradient(circle,${g1}40 0%,${g0}18 60%,transparent 80%)`;
+  document.getElementById("bg-grid").style.backgroundImage = `linear-gradient(${g0}25 1px,transparent 1px),linear-gradient(90deg,${g0}25 1px,transparent 1px)`;
+  document.getElementById("scan").style.background = `linear-gradient(90deg,transparent,${g0}80,${g1}80,transparent)`;
+  document.getElementById("wave-inner").style.background = `radial-gradient(ellipse at 50% 100%,${g0}18,${g1}12,transparent 65%)`;
+  // Weather FX
+  const fx = document.getElementById("bg-fx");
+  fx.innerHTML = "";
+  if(code==="rainy"||code==="storm"){
+    for(let i=0;i<20;i++){
+      const d=document.createElement("div");
+      const durs=[.5,.62,.45,.7,.55,.48,.63,.52,.58,.47,.66,.53,.49,.68,.51,.44,.57,.42,.64,.50];
+      d.style.cssText=`position:absolute;left:${(i*5)%98}%;top:-15%;width:${i%3===0?2:1.5}px;height:${i%3===0?35:24}px;background:linear-gradient(transparent,rgba(160,210,255,.7));border-radius:2px;animation:rainD ${durs[i]}s linear ${(i*.08).toFixed(2)}s infinite`;
+      fx.appendChild(d);
+    }
+  }
+  if(code==="snow"){
+    const durs=[1.2,1.5,1.3,1.7,1.4,1.6,1.2,1.5,1.3,1.4];
+    durs.forEach((dur,i)=>{
+      const d=document.createElement("div");
+      d.style.cssText=`position:absolute;left:${i*10}%;top:-5%;font-size:16px;opacity:.8;animation:snowF ${dur}s linear ${(i*.2).toFixed(1)}s infinite;filter:drop-shadow(0 0 4px ${g0})`;
+      d.textContent="❄";
+      fx.appendChild(d);
+    });
+  }
+  // Bubbles
+  const bb=document.getElementById("bg-bubbles");
+  bb.innerHTML="";
+  const bdata=[{x:10,sz:18,dur:12,del:0,col:g0},{x:30,sz:12,dur:15,del:2.5,col:g1},{x:55,sz:22,dur:10,del:5,col:g0},{x:75,sz:14,dur:18,del:1,col:g1},{x:90,sz:10,dur:13,del:7,col:"rgba(255,255,255,.5)"},{x:20,sz:16,dur:16,del:3,col:g1},{x:68,sz:8,dur:11,del:9,col:g0}];
+  bdata.forEach(b=>{
+    const d=document.createElement("div");
+    d.style.cssText=`position:absolute;left:${b.x}%;bottom:-5%;width:${b.sz}px;height:${b.sz}px;border-radius:50%;background:radial-gradient(circle,${b.col}90,${b.col}20);box-shadow:0 0 ${b.sz}px ${b.col}60;animation:floatUp ${b.dur}s ease-in ${b.del}s infinite`;
+    bb.appendChild(d);
+  });
+  // Rings
+  document.querySelectorAll(".ring").forEach(r=>{r.style.borderColor=g0+"50";});
+  // Stars
+  const st=document.getElementById("bg-stars");
+  if(!st.children.length){
+    const stars=[{x:8,y:8,s:1.5,d:0},{x:22,y:3,s:2,d:.6},{x:40,y:12,s:1,d:1.2},{x:65,y:6,s:2.5,d:.3},{x:82,y:10,s:1.5,d:1.8},{x:92,y:4,s:1,d:.9},{x:15,y:20,s:1,d:2.1},{x:75,y:22,s:2,d:.4},{x:55,y:18,s:1.5,d:1.5},{x:30,y:35,s:1,d:2.5},{x:88,y:38,s:2,d:.7},{x:5,y:55,s:1.5,d:1.1},{x:48,y:48,s:1,d:2.8},{x:70,y:55,s:2.5,d:.2},{x:18,y:70,s:1,d:1.9},{x:60,y:75,s:1.5,d:3.0},{x:35,y:85,s:2,d:.8},{x:80,y:80,s:1,d:2.3},{x:95,y:70,s:1.5,d:1.4},{x:50,y:90,s:2,d:.5}];
+    stars.forEach(s=>{
+      const d=document.createElement("div");
+      d.style.cssText=`position:absolute;left:${s.x}%;top:${s.y}%;width:${s.s}px;height:${s.s}px;border-radius:50%;background:#fff;box-shadow:0 0 ${s.s*2}px rgba(255,255,255,.8);animation:star ${2.5+s.d*.5}s ease-in-out ${s.d}s infinite`;
+      st.appendChild(d);
+    });
+    // Meteors
+    [{x:80,y:5,d:0},{x:60,y:2,d:4},{x:90,y:15,d:8}].forEach(m=>{
+      const d=document.createElement("div");
+      d.style.cssText=`position:absolute;left:${m.x}%;top:${m.y}%;width:80px;height:1.5px;background:linear-gradient(90deg,rgba(255,255,255,.8),transparent);border-radius:2px;transform-origin:right center;animation:meteor 3s linear ${m.d}s infinite;opacity:.7`;
+      st.appendChild(d);
+    });
+  }
+  // Nav indicator
+  const ni=document.getElementById("nav-indicator-"+VIEW);
+  if(ni) ni.style.background=`linear-gradient(90deg,${g0},${g1})`;
+}
+
+// ══════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════
+function updateClock(){
+  const now=new Date();
+  const tz = SEL&&VIEW==="detail" ? WDB[SEL]&&WDB[SEL].tz : null;
+  const opts={weekday:"long",month:"short",day:"numeric"};
+  const tOpts={hour:"2-digit",minute:"2-digit",second:"2-digit"};
+  document.getElementById("hdate").textContent = tz ? now.toLocaleDateString("en",{...opts,timeZone:tz}) : now.toLocaleDateString("en",opts);
+  document.getElementById("htime").textContent = tz ? now.toLocaleTimeString("en",{...tOpts,timeZone:tz}) : now.toLocaleTimeString("en",tOpts);
+  document.getElementById("htz").textContent = tz ? "🌐 "+tz.replace(/_/g," ") : "";
+  // Update local times on detail page
+  if(SEL&&VIEW==="detail"){
+    const r=WDB[SEL];
+    if(r){
+      const lt=document.getElementById("d-localtime");
+      if(lt) lt.textContent=`🕐 ${cityTime(r.tz)} · ${cityDate(r.tz)}`;
+    }
+  }
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// ══════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════
+function renderHome(){
+  const g=document.getElementById("city-grid");
+  g.innerHTML=CITIES.map((c,i)=>{
+    const r=WDB[c.n];
+    const ci=r?CODE[r.code]:CODE["sunny"];
+    const lt=r?cityTime(r.tz):"";
+    return `<div class="city-card tap lift fu" onclick="loadCity('${c.n}')"
+      style="background:linear-gradient(145deg,${PAL[i%16]}22,${PAL[i%16]}07);border:1px solid ${PAL[i%16]}40;animation-delay:${i*.04}s">
+      <div class="city-top"><span class="city-em">${c.e}</span><span class="city-flag">${c.f}</span></div>
+      <div class="city-name">${c.n}</div>
+      ${r?`<div class="city-meta">${ci.em} ${r.t}°C · ${lt}</div>`:""}
+      <div class="city-btn" style="color:${PAL[i%16]};background:${PAL[i%16]}20;border:1px solid ${PAL[i%16]}40">Details →</div>
+    </div>`;
+  }).join("");
+}
+
+// ══════════════════════════════════════════
+// LOAD CITY
+// ══════════════════════════════════════════
+function loadCity(name){
+  SEL=name; VIEW="detail";
+  document.getElementById("home").style.display="none";
+  document.getElementById("detail").style.display="none";
+  document.getElementById("loading").classList.remove("hidden");
+  document.getElementById("loading-emoji").textContent=CITIES.find(c=>c.n===name)?.e||"🌤️";
+  document.getElementById("loading-text").textContent="Loading "+name+"…";
+  document.getElementById("nav-home").classList.remove("active");
+  document.getElementById("nav-detail").classList.add("active");
+  hideDD(); setSearch("");
+  setTimeout(()=>renderDetail(name),500);
+}
+
+function renderDetail(name){
+  const raw=WDB[name]||WDB["Chennai"];
+  const week=WEEK[name]||WEEK["Chennai"];
+  const hourly=HOURLY[name]||HOURLY["Chennai"];
+  const ci=CODE[raw.code]||CODE["sunny"];
+  const city=CITIES.find(c=>c.n===name)||{f:"🌍",e:"📍"};
+  const G0=ci.g[0], G1=ci.g[1];
+  const uv=uvLbl(raw.uv);
+
+  updateBG(G0,G1,raw.code);
+  updateNavIndicator(G0,G1);
+
+  // Hero
+  document.getElementById("d-flag").textContent=city.f;
+  document.getElementById("d-city").textContent=name;
+  document.getElementById("d-desc").textContent=raw.desc;
+  document.getElementById("d-localtime").textContent=`🕐 ${cityTime(raw.tz)} · ${cityDate(raw.tz)}`;
+  document.getElementById("d-emoji").textContent=ci.em;
+  document.getElementById("hglow-a").style.background=`radial-gradient(circle,${G0}20,transparent 70%)`;
+  document.getElementById("hglow-b").style.background=`radial-gradient(circle,${G1}15,transparent 70%)`;
+  document.getElementById("d-temp").textContent=tc(raw.t);
+  document.getElementById("d-sub").textContent=`${ci.em.split?ci.em:""} · Feels ${tc(raw.f)}`;
+  // Stats
+  document.getElementById("d-hum").textContent=raw.h+"%";
+  document.getElementById("d-wind").textContent=raw.w+" km/h";
+  document.getElementById("d-wdir").textContent=raw.wd;
+  document.getElementById("d-vis").textContent=raw.v+"km";
+  document.getElementById("d-pres").textContent=raw.p+"hPa";
+  // Tip
+  const tips=[];
+  if(raw.t<5)tips.push("Heavy Coat","Gloves");
+  else if(raw.t<15)tips.push("Light Jacket","Jeans");
+  else if(raw.t<25)tips.push("T-Shirt","Sneakers");
+  else tips.push("Light Wear","Shorts","Sunglasses");
+  if(raw.code==="rainy"||raw.code==="storm")tips.push("Umbrella");
+  if(raw.uv>5)tips.push("Sunscreen");
+  document.getElementById("d-tip").textContent=`${ci.em} ${name}: ${raw.t}°C ${raw.code} — ${tips[0]||"dress comfortably"} recommended. Humidity ${raw.h}%.`;
+  // Extra
+  document.getElementById("d-uvi").textContent=raw.uv;
+  document.getElementById("d-uvlbl").textContent=uv.t;
+  document.getElementById("d-uvlbl").style.color=uv.c;
+  document.getElementById("d-rise").textContent=raw.rise;
+  document.getElementById("d-set").textContent=raw.set;
+  // UV bar
+  document.getElementById("d-uv").textContent=raw.uv;
+  document.getElementById("d-uvt").textContent=uv.t;
+  document.getElementById("d-uvt").style.color=uv.c;
+  document.getElementById("d-uvbar").style.width=Math.min(100,raw.uv/12*100)+"%";
+  // Wind compass
+  const angle=wAngle(raw.wd);
+  document.getElementById("compass-arrow").setAttribute("transform",`rotate(${angle},42,42)`);
+  document.getElementById("d-wsp").innerHTML=raw.w+' <span style="font-size:11px;font-weight:400">km/h</span>';
+  document.getElementById("d-wdlbl").textContent=raw.wd;
+  // Hourly
+  document.getElementById("d-hourly").innerHTML=hourly.map((h,i)=>`
+    <div style="flex-shrink:0;width:66px;text-align:center;padding:14px 8px;border-radius:20px;${i===0?"background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38)":"background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07)"}">
+      <div style="font-size:10px;color:${i===0?"#fff":"rgba(255,255,255,.48)"};margin-bottom:7px;font-weight:${i===0?700:400}">${h.t}</div>
+      <div style="font-size:26px;margin-bottom:7px">${h.e}</div>
+      <div style="font-weight:700;font-size:13px">${tc(h.c)}</div>
+    </div>`).join("");
+  // Week
+  const allHi=week.map(d=>tn(d.hi)), allLo=week.map(d=>tn(d.lo));
+  const absMax=Math.max(...allHi), absMin=Math.min(...allLo), range=absMax-absMin||1;
+  document.getElementById("d-week").innerHTML=week.map((d,i)=>{
+    const hi=tn(d.hi),lo=tn(d.lo);
+    const bL=((lo-absMin)/range*100).toFixed(1), bW=((hi-lo)/range*100).toFixed(1);
+    return `<div class="day-row${i===0?" day-today":""}">
+      <div class="day-name" style="font-weight:${i===0?700:400};color:${i===0?"#fff":"rgba(255,255,255,.6)"}">${d.d}</div>
+      <div class="day-em">${d.e}</div>
+      <div class="day-rain">${d.r>10?d.r+"%":""}</div>
+      <div class="day-bar-wrap"><div class="day-bar" style="left:${bL}%;width:${bW}%;background:linear-gradient(90deg,${G1},${G0})"></div></div>
+      <div class="day-lo">${lo}°</div>
+      <div class="day-hi">${hi}°</div>
+    </div>`;
+  }).join("");
+  // Wear
+  const wearTips=[];
+  if(raw.t<5)wearTips.push("🧥 Heavy Coat","🧤 Gloves","🧣 Scarf","🥾 Boots");
+  else if(raw.t<15)wearTips.push("🧥 Light Jacket","👖 Jeans","👟 Shoes");
+  else if(raw.t<25)wearTips.push("👕 T-Shirt","👖 Pants","👟 Sneakers");
+  else wearTips.push("👕 Light Wear","🩳 Shorts","🕶️ Sunglasses","👡 Sandals");
+  if(raw.code==="rainy"||raw.code==="storm")wearTips.push("☂️ Umbrella");
+  if(raw.uv>5)wearTips.push("🧴 Sunscreen");
+  if(raw.w>25)wearTips.push("🧣 Windproof");
+  document.getElementById("d-wear").innerHTML=wearTips.map(t=>`<div class="wear-pill">${t}</div>`).join("");
+  // Others
+  document.getElementById("d-others").innerHTML=CITIES.filter(c=>c.n!==name).slice(0,10).map((c,i)=>{
+    const r=WDB[c.n]; const ci2=r?CODE[r.code]:CODE["sunny"];
+    return `<div class="other-card" onclick="loadCity('${c.n}')" style="background:${PAL[i%16]}18;border:1px solid ${PAL[i%16]}35">
+      <div class="other-em">${c.e}</div>
+      <div class="other-name">${c.n}</div>
+      <div class="other-flag">${c.f}</div>
+      ${r?`<div class="other-temp">${ci2.em} ${r.t}°C</div><div class="other-time">🕐 ${cityTime(r.tz)}</div>`:""}
+    </div>`;
+  }).join("");
+
+  document.getElementById("loading").classList.add("hidden");
+  document.getElementById("detail").style.display="block";
+  updateClock();
+  document.getElementById("content").scrollTop=0;
+}
+
+function updateNavIndicator(g0,g1){
+  ["home","detail"].forEach(id=>{
+    let ni=document.getElementById("nav-indicator-"+id);
+    if(!ni){
+      ni=document.createElement("div");
+      ni.id="nav-indicator-"+id;
+      ni.className="nav-indicator";
+      document.getElementById("nav-"+id).prepend(ni);
+    }
+    ni.style.background = VIEW===id ? `linear-gradient(90deg,${g0},${g1})` : "transparent";
+  });
+}
+
+// ══════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════
+function gotoHome(){
+  VIEW="home";
+  document.getElementById("detail").style.display="none";
+  document.getElementById("loading").classList.add("hidden");
+  document.getElementById("home").style.display="block";
+  document.getElementById("nav-home").classList.add("active");
+  document.getElementById("nav-detail").classList.remove("active");
+  updateBG("#6366f1","#8b5cf6","cloudy");
+  updateNavIndicator("#6366f1","#8b5cf6");
+  document.getElementById("htz").textContent="";
+}
+
+function gotoDetail(){
+  if(!SEL) return;
+  VIEW="detail";
+  document.getElementById("home").style.display="none";
+  document.getElementById("detail").style.display="block";
+  document.getElementById("nav-detail").classList.add("active");
+  document.getElementById("nav-home").classList.remove("active");
+  const r=WDB[SEL]; if(r){ updateBG(CODE[r.code].g[0],CODE[r.code].g[1],r.code); updateNavIndicator(CODE[r.code].g[0],CODE[r.code].g[1]); }
+  updateClock();
+}
+
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+function onSearch(val){
+  document.getElementById("search-clear").classList.toggle("hidden",!val);
+  if(!val){ document.getElementById("search-dd").classList.add("hidden"); return; }
+  const results=CITIES.filter(c=>c.n.toLowerCase().includes(val.toLowerCase())).slice(0,6);
+  const dd=document.getElementById("search-dd");
+  if(!results.length){ dd.classList.add("hidden"); return; }
+  dd.innerHTML=results.map(c=>`<div class="dd-item" onclick="loadCity('${c.n}');clearSearch()">
+    <span style="font-size:24px">${c.e}</span>
+    <div><div class="dd-name">${c.n}</div><div class="dd-flag">${c.f}</div></div>
+  </div>`).join("");
+  dd.classList.remove("hidden");
+}
+function doSearchEnter(){
+  const v=document.getElementById("search-input").value.trim();
+  if(!v)return;
+  const found=CITIES.find(c=>c.n.toLowerCase().includes(v.toLowerCase()));
+  if(found)loadCity(found.n);
+  clearSearch();
+}
+function clearSearch(){ document.getElementById("search-input").value=""; document.getElementById("search-clear").classList.add("hidden"); hideDD(); }
+function hideDD(){ document.getElementById("search-dd").classList.add("hidden"); }
+function setSearch(v){ document.getElementById("search-input").value=v; }
+
+// ══════════════════════════════════════════
+// UNIT TOGGLE
+// ══════════════════════════════════════════
+function toggleUnit(){
+  UNIT=UNIT==="C"?"F":"C";
+  document.getElementById("unit-btn").textContent="°"+(UNIT==="C"?"F":"C");
+  if(SEL&&VIEW==="detail") renderDetail(SEL);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+renderHome();
+updateBG("#6366f1","#8b5cf6","cloudy");
+loadCity("Chennai");
+</script>
+</body>
+</html>
